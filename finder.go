@@ -29,8 +29,7 @@ func main() {
 			log.Fatal(err)
 		}
 	}(resultFile)
-
-	utils.WriteLine(resultFile, utils.GetHeaderLine(allNames.Filter))
+	utils.WriteLine(resultFile, utils.GetHeaderLine(allNames.Filter, utils.GetAbsolutePath("./")))
 
 	var dirEntriesWithPath = make([]*pathEntry.DirEntryWithPath, 0)
 
@@ -55,7 +54,7 @@ func main() {
 				if strings.Contains(dirEntryWithPath.Name(), allNames.Filter) {
 					utils.WriteLine(
 						resultFile,
-						utils.GetResultLine(dirEntryWithPath.PathWithName(), "Folder name", dirEntryWithPath.Name()))
+						utils.GetResultLine(utils.GetAbsolutePath(dirEntryWithPath.PathWithName()), "Folder name", dirEntryWithPath.Name()))
 				}
 
 				dirEntryWithPath.AppendPath()

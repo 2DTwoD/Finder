@@ -17,7 +17,7 @@ var mutex sync.Mutex
 
 func main() {
 	allNames.Current = filepath.Base(os.Args[0])
-	allNames.Filter = strings.ToLower(strings.TrimSuffix(allNames.Current, filepath.Ext(allNames.Current)))
+	allNames.Filter = strings.TrimSuffix(allNames.Current, filepath.Ext(allNames.Current))
 	allNames.Result = utils.GetResultFileName()
 	resultFile, err := os.Create(allNames.Result)
 	if err != nil {
@@ -52,7 +52,7 @@ func main() {
 		i++
 		go func() {
 			if dirEntryWithPath.IsDir() {
-				if strings.Contains(strings.ToLower(dirEntryWithPath.Name()), allNames.Filter) {
+				if strings.Contains(dirEntryWithPath.Name(), allNames.Filter) {
 					utils.WriteLine(
 						resultFile,
 						utils.GetResultLine(dirEntryWithPath.PathWithName(), "Folder name", dirEntryWithPath.Name()))

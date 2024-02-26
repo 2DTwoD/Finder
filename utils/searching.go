@@ -43,7 +43,7 @@ func searchInFile(path string, name string, filter string) []string {
 	}(file)
 
 	abs := GetAbsolutePath(path)
-	if strings.Contains(strings.ToLower(name), filter) {
+	if strings.Contains(name, filter) {
 		result = append(result, GetResultLine(abs, "File name", name))
 	}
 	scanner := bufio.NewScanner(file)
@@ -52,10 +52,10 @@ func searchInFile(path string, name string, filter string) []string {
 		carriage := 0
 		for {
 			currentSearchLine := scanner.Text()[carriage:]
-			if carriage > len(scanner.Text()) {
+			if carriage >= len(scanner.Text()) {
 				break
 			}
-			if strings.Contains(strings.ToLower(currentSearchLine), filter) {
+			if strings.Contains(currentSearchLine, filter) {
 				index := strings.Index(currentSearchLine, filter)
 				start := max(0, carriage+index-charsAround)
 				finish := min(carriage+index+len(filter)+charsAround, len(scanner.Text()))

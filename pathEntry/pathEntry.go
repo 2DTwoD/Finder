@@ -1,4 +1,4 @@
-package classDirEntryWithPath
+package pathEntry
 
 import (
 	"os"

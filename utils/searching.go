@@ -1,19 +1,19 @@
 package utils
 
 import (
-	"Finder/classDirEntryWithPath"
+	"Finder/pathEntry"
 	"Finder/structures"
 	"bufio"
 	"fmt"
 	"os"
-	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 )
 
 const charsAround int = 20
 
-func SearchScript(dirEntryWithPath *classDirEntryWithPath.DirEntryWithPath, resultFile *os.File, waitChan chan bool,
+func SearchScript(dirEntryWithPath *pathEntry.DirEntryWithPath, resultFile *os.File, waitChan chan bool,
 	allNames *structures.Names, mutex *sync.Mutex) {
 	if dirEntryWithPath.Name() == allNames.Result || dirEntryWithPath.Name() == allNames.Current {
 		<-waitChan
@@ -22,7 +22,7 @@ func SearchScript(dirEntryWithPath *classDirEntryWithPath.DirEntryWithPath, resu
 	matches := searchInFile(dirEntryWithPath.PathWithName(), dirEntryWithPath.Name(), allNames.Filter)
 	for _, item := range matches {
 		mutex.Lock()
-		resultFile.WriteString(item + "\n")
+		WriteLine(resultFile, item)
 		mutex.Unlock()
 	}
 	<-waitChan
@@ -32,36 +32,37 @@ func searchInFile(path string, name string, filter string) []string {
 	result := make([]string, 0)
 	file, err := os.Open(path)
 	if err != nil {
-		result = append(result, "Error is happened: "+err.Error())
+		result = append(result, GetErrorLine(err))
 		return result
 	}
-	defer file.Close()
-	abs, err := filepath.Abs(file.Name())
-	if strings.Contains(name, filter) {
-		result = append(result,
-			fmt.Sprintf("FilePath: %s, Line: In name, Content: %s",
-				abs, name))
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			result = append(result, GetErrorLine(err))
+		}
+	}(file)
+
+	abs := GetAbsolutePath(path)
+	if strings.Contains(strings.ToLower(name), filter) {
+		result = append(result, GetResultLine(abs, "File name", name))
 	}
 	scanner := bufio.NewScanner(file)
 	line := 1
 	for scanner.Scan() {
-		carret := 0
+		carriage := 0
 		for {
-			currentSearchLine := scanner.Text()[carret:]
-			if carret > len(scanner.Text()) {
+			currentSearchLine := scanner.Text()[carriage:]
+			if carriage > len(scanner.Text()) {
 				break
 			}
-			if strings.Contains(currentSearchLine, filter) {
+			if strings.Contains(strings.ToLower(currentSearchLine), filter) {
 				index := strings.Index(currentSearchLine, filter)
-				start := max(0, carret+index-charsAround)
-				finish := min(carret+index+len(filter)+charsAround, len(scanner.Text()))
-				if err != nil {
-					abs = "ABS_PATH_ERROR"
-				}
-				result = append(result,
-					fmt.Sprintf("FilePath: %s, Line: %d, Content: %s",
-						abs, line, fmt.Sprintf("...%s...", scanner.Text()[start:finish])))
-				carret += index + len(filter)
+				start := max(0, carriage+index-charsAround)
+				finish := min(carriage+index+len(filter)+charsAround, len(scanner.Text()))
+				result = append(
+					result,
+					GetResultLine(abs, strconv.Itoa(line), fmt.Sprintf("...%s...", scanner.Text()[start:finish])))
+				carriage += index + len(filter)
 			} else {
 				break
 			}

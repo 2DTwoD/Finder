@@ -1,34 +1,32 @@
 package utils
 
 import (
+	"Finder/globals"
 	"Finder/pathEntry"
-	"Finder/structures"
 	"bufio"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 const charsAround int = 20
 
-func SearchScript(dirEntryWithPath *pathEntry.DirEntryWithPath, resultFile *os.File, waitChan chan bool,
-	allNames *structures.Names, mutex *sync.Mutex) {
-	if dirEntryWithPath.Name() == allNames.Result || dirEntryWithPath.Name() == allNames.Current {
+func SearchScript(dirEntryWithPath *pathEntry.DirEntryWithPath, resultFile *os.File, waitChan chan bool) {
+	if dirEntryWithPath.Name() == globals.GetResultFileName() || dirEntryWithPath.Name() == globals.GetCurrentFileName() {
 		<-waitChan
 		return
 	}
-	matches := searchInFile(dirEntryWithPath.PathWithName(), dirEntryWithPath.Name(), allNames.Filter)
+	matches := searchInFile(dirEntryWithPath.PathWithName(), dirEntryWithPath.Name())
 	for _, item := range matches {
-		mutex.Lock()
+		globals.GetMutex().Lock()
 		WriteLine(resultFile, item)
-		mutex.Unlock()
+		globals.GetMutex().Unlock()
 	}
 	<-waitChan
 }
 
-func searchInFile(path string, name string, filter string) []string {
+func searchInFile(path string, name string) []string {
 	result := make([]string, 0)
 	file, err := os.Open(path)
 	if err != nil {
@@ -43,7 +41,7 @@ func searchInFile(path string, name string, filter string) []string {
 	}(file)
 
 	abs := GetAbsolutePath(path)
-	if strings.Contains(name, filter) {
+	if strings.Contains(name, globals.GetFilter()) {
 		result = append(result, GetResultLine(abs, "File name", name))
 	}
 	scanner := bufio.NewScanner(file)
@@ -55,14 +53,14 @@ func searchInFile(path string, name string, filter string) []string {
 			if carriage >= len(scanner.Text()) {
 				break
 			}
-			if strings.Contains(currentSearchLine, filter) {
-				index := strings.Index(currentSearchLine, filter)
+			if strings.Contains(currentSearchLine, globals.GetFilter()) {
+				index := strings.Index(currentSearchLine, globals.GetFilter())
 				start := max(0, carriage+index-charsAround)
-				finish := min(carriage+index+len(filter)+charsAround, len(scanner.Text()))
+				finish := min(carriage+index+len(globals.GetFilter())+charsAround, len(scanner.Text()))
 				result = append(
 					result,
 					GetResultLine(abs, strconv.Itoa(line), fmt.Sprintf("...%s...", scanner.Text()[start:finish])))
-				carriage += index + len(filter)
+				carriage += index + len(globals.GetFilter())
 			} else {
 				break
 			}

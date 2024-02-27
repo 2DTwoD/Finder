@@ -17,10 +17,18 @@ func SearchScript(dirEntryWithPath *pathEntry.DirEntryWithPath, resultFile *os.F
 		<-waitChan
 		return
 	}
-	matches := searchInFile(dirEntryWithPath.PathWithName(), dirEntryWithPath.Name())
+	matches := make([]string, 0)
+	if dirEntryWithPath.IsDir() {
+		if strings.Contains(strings.ToLower(dirEntryWithPath.Name()), globals.GetFilter()) {
+			matches = append(matches,
+				GetResultLine(GetAbsolutePath(dirEntryWithPath.Path()), "Folder name", dirEntryWithPath.Name()))
+		}
+	} else {
+		matches = searchInFile(dirEntryWithPath.PathWithName(), dirEntryWithPath.Name())
+	}
 	for _, item := range matches {
 		globals.GetMutex().Lock()
-		WriteLine(resultFile, item)
+		WriteLine(resultFile, fmt.Sprintf("%d - %s", globals.IncrementLineCounter(), item))
 		globals.GetMutex().Unlock()
 	}
 	<-waitChan
@@ -41,7 +49,7 @@ func searchInFile(path string, name string) []string {
 	}(file)
 
 	abs := GetAbsolutePath(path)
-	if strings.Contains(name, globals.GetFilter()) {
+	if strings.Contains(strings.ToLower(name), globals.GetFilter()) {
 		result = append(result, GetResultLine(abs, "File name", name))
 	}
 	scanner := bufio.NewScanner(file)
@@ -53,6 +61,12 @@ func searchInFile(path string, name string) []string {
 			if carriage >= len(scanner.Text()) {
 				break
 			}
+
+			if len(scanner.Text()[carriage:]) != len(strings.ToLower(scanner.Text()[carriage:])) {
+				println(scanner.Text()[carriage:])
+				println(strings.ToLower(scanner.Text()[carriage:]))
+			}
+
 			if strings.Contains(currentSearchLine, globals.GetFilter()) {
 				index := strings.Index(currentSearchLine, globals.GetFilter())
 				start := max(0, carriage+index-charsAround)

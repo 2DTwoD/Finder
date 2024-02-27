@@ -11,9 +11,11 @@ import (
 	"strings"
 )
 
+const startPath string = "D:/Virtual Machines/" //"./"
+
 func main() {
 	globals.SetCurrentFileName(filepath.Base(os.Args[0]))
-	globals.SetFilter("wtf") //strings.TrimSuffix(globals.GetCurrentFileName(), filepath.Ext(globals.GetCurrentFileName()))
+	globals.SetFilter(strings.ToLower("wtf")) //strings.TrimSuffix(globals.GetCurrentFileName(), filepath.Ext(globals.GetCurrentFileName()))
 	globals.SetResultFileName(utils.GetResultFileName())
 	resultFile, err := os.Create(globals.GetResultFileName())
 	if err != nil {
@@ -26,53 +28,47 @@ func main() {
 		}
 	}(resultFile)
 
-	utils.WriteLine(resultFile, utils.GetHeaderLine(utils.GetAbsolutePath("./")))
+	utils.WriteLine(resultFile, utils.GetHeaderLine(utils.GetAbsolutePath(startPath)))
 
 	var dirEntriesWithPath = make([]*pathEntry.DirEntryWithPath, 0)
 
-	dirEntries, err := os.ReadDir("D:/Virtual Machines/") //"./"
+	dirEntries, err := os.ReadDir(startPath)
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, dirEntry := range dirEntries {
-		dirEntriesWithPath = append(dirEntriesWithPath, pathEntry.New(&dirEntry, "D:/Virtual Machines/")) //"./"
-	}
-	waitChan := make(chan bool, runtime.NumCPU())
-	var i = 0
+	dirEntriesWithPath = getEntryPathSlice(dirEntries, startPath)
+
+	var i int
 
 	for {
-		waitChan <- true
-		if i+1 > len(dirEntriesWithPath) {
-			<-waitChan
+		if i >= len(dirEntriesWithPath) {
 			break
 		}
 		dirEntryWithPath := dirEntriesWithPath[i]
 		i++
-		go func() {
-			if dirEntryWithPath.IsDir() {
-				globals.GetMutex().Lock()
-				if strings.Contains(dirEntryWithPath.Name(), globals.GetFilter()) {
-					utils.WriteLine(
-						resultFile,
-						utils.GetResultLine(
-							utils.GetAbsolutePath(dirEntryWithPath.PathWithName()),
-							"Folder name",
-							dirEntryWithPath.Name()))
-				}
-
-				dirEntryWithPath.AppendPath()
-				moreDirEntries, _ := os.ReadDir(dirEntryWithPath.Path())
-				for _, dirEntry := range moreDirEntries {
-					dirEntriesWithPath = append(dirEntriesWithPath, pathEntry.New(&dirEntry, dirEntryWithPath.Path()))
-				}
-				globals.GetMutex().Unlock()
-				<-waitChan
-				return
-			}
-			utils.SearchScript(dirEntryWithPath, resultFile, waitChan)
-		}()
+		if dirEntryWithPath.IsDir() {
+			dirEntryWithPath.AppendPath()
+			moreDirEntries, _ := os.ReadDir(dirEntryWithPath.Path())
+			dirEntriesWithPath = append(dirEntriesWithPath, getEntryPathSlice(moreDirEntries, dirEntryWithPath.Path())...)
+		}
 	}
+
+	waitChan := make(chan bool, runtime.NumCPU())
+	for _, dirEntryWithPath := range dirEntriesWithPath {
+		waitChan <- true
+		go utils.SearchScript(dirEntryWithPath, resultFile, waitChan)
+	}
+
 	for len(waitChan) != 0 {
 	}
+
 	utils.WriteLine(resultFile, utils.GetEndLine())
+}
+
+func getEntryPathSlice(dirEntrySlice []os.DirEntry, path string) []*pathEntry.DirEntryWithPath {
+	result := make([]*pathEntry.DirEntryWithPath, 0)
+	for _, dirEntry := range dirEntrySlice {
+		result = append(result, pathEntry.New(&dirEntry, path))
+	}
+	return result
 }

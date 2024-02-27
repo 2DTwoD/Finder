@@ -14,11 +14,11 @@ func GetHeaderLine(path string) string {
 }
 
 func GetResultLine(path string, line string, content string) string {
-	return fmt.Sprintf("%d - FilePath: %s,\tLine: %s,\tContent: %s", globals.IncrementLineCounter(), path, line, content)
+	return fmt.Sprintf("FilePath: %s,\tLine: %s,\tContent: %s", path, line, content)
 }
 
 func GetErrorLine(err error) string {
-	return fmt.Sprintf("%d - Error is happened: %s\t", globals.IncrementLineCounter(), err.Error())
+	return fmt.Sprintf("Error is happened: %s\t", err.Error())
 }
 func GetEndLine() string {
 	if globals.GetLineCounter() > 0 {

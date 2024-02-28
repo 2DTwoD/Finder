@@ -4,5 +4,4 @@
 *.ipr
 
 !result*
-*.exe
 /test_folder

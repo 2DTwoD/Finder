@@ -3,6 +3,6 @@
 *.iml
 *.ipr
 
-result*
+!result*
 *.exe
 /test_folder

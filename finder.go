@@ -12,10 +12,10 @@ import (
 )
 
 const startPath string = "./"
-const startFilter string = "wtf"
+const startFilter string = ""
 
 func main() {
-	log.Println("Start")
+	log.Println("Starting: " + utils.GetHeaderLine(utils.GetAbsolutePath(startPath)))
 
 	globals.SetCurrentFileName(filepath.Base(os.Args[0]))
 	if startFilter == "" {
@@ -24,7 +24,11 @@ func main() {
 		globals.SetFilter(strings.ToLower(startFilter))
 	}
 	globals.SetResultFileName(utils.GetResultFileName())
-	resultFile, err := os.Create(globals.GetResultFileName())
+
+	resultFileName := globals.GetResultFileName()
+	log.Println("Creating result file: " + resultFileName)
+
+	resultFile, err := os.Create(resultFileName)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -47,8 +51,6 @@ func main() {
 
 	var i int
 
-	log.Println("Creating folders tree...")
-
 	for {
 		if i >= len(dirEntriesWithPath) {
 			break
@@ -60,20 +62,22 @@ func main() {
 			moreDirEntries, _ := os.ReadDir(dirEntryWithPath.Path())
 			dirEntriesWithPath = append(dirEntriesWithPath, getEntryPathSlice(moreDirEntries, dirEntryWithPath.Path())...)
 		}
+		log.Printf("Creating folders tree, total: %d", len(dirEntriesWithPath))
 	}
 
 	log.Println("Search for matches...")
 
 	waitChan := make(chan bool, runtime.NumCPU())
-	for _, dirEntryWithPath := range dirEntriesWithPath {
+	for index, dirEntryWithPath := range dirEntriesWithPath {
 		waitChan <- true
 		go utils.SearchScript(dirEntryWithPath, resultFile, waitChan)
+		log.Printf("Ready: %d", index*100/len(dirEntriesWithPath))
 	}
 
 	for len(waitChan) != 0 {
 	}
 
-	log.Println("Finish")
+	log.Println("Finished")
 
 	utils.WriteLine(resultFile, utils.GetEndLine())
 }

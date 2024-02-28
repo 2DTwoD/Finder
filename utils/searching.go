@@ -55,29 +55,15 @@ func searchInFile(path string, name string) []string {
 	scanner := bufio.NewScanner(file)
 	line := 1
 	for scanner.Scan() {
-		carriage := 0
-		for {
-			currentSearchLine := scanner.Text()[carriage:]
-			if carriage >= len(scanner.Text()) {
-				break
-			}
-
-			if len(scanner.Text()[carriage:]) != len(strings.ToLower(scanner.Text()[carriage:])) {
-				println(scanner.Text()[carriage:])
-				println(strings.ToLower(scanner.Text()[carriage:]))
-			}
-
-			if strings.Contains(currentSearchLine, globals.GetFilter()) {
-				index := strings.Index(currentSearchLine, globals.GetFilter())
-				start := max(0, carriage+index-charsAround)
-				finish := min(carriage+index+len(globals.GetFilter())+charsAround, len(scanner.Text()))
-				result = append(
-					result,
-					GetResultLine(abs, strconv.Itoa(line), fmt.Sprintf("...%s...", scanner.Text()[start:finish])))
-				carriage += index + len(globals.GetFilter())
-			} else {
-				break
-			}
+		indexes := GetAllRuneIndexesInString(scanner.Text(), globals.GetFilter())
+		for _, index := range indexes {
+			filterRunes := []rune(globals.GetFilter())
+			textRunes := []rune(scanner.Text())
+			start := max(0, index-charsAround)
+			finish := min(index+len(filterRunes)+charsAround, len(textRunes))
+			result = append(
+				result,
+				GetResultLine(abs, strconv.Itoa(line), fmt.Sprintf("...%s...", string(textRunes[start:finish]))))
 		}
 		line++
 	}
